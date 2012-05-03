@@ -16,7 +16,9 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    segmentator.cpp
+    segmentator.cpp \
+    rectangle.cpp
 
 HEADERS += \
-    segmentator.h
+    segmentator.h \
+    rectangle.h

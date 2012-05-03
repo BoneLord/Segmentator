@@ -1,4 +1,5 @@
 #include "segmentator.h"
+#include "rectangle.h"
 #include <fstream>
 #include <iostream>
 
@@ -16,13 +17,24 @@ int main(void) {
         return 1;
     }
     Segmentator segmentator(image, height, width);
-    segmentator.algorithm();
+    Rectangle **rectangles = segmentator.algorithm();
+
+    for (int i = 0; i < segmentator.getCountSegments(); ++i) {
+        std::cout << "height = " << rectangles[i]->height() << " ";
+        std::cout << "width = " << rectangles[i]->width() << std::endl;
+    }
 
     // Delete
     for (int i = 0; i < height; ++i) {
         delete [] image[i];
     }
     delete [] image;
+
+    int size = segmentator.getCountSegments();
+    for (int i = 0; i < size; ++i) {
+        delete rectangles[i];
+    }
+    delete [] rectangles;
 
     return 0;
 }

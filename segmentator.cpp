@@ -4,6 +4,7 @@ Segmentator::Segmentator(int **image, int height, int width) {
     myImage = image;
     myWidth = width;
     myHeight = height;
+    myCountSegments = 0;
 }
 
 int* Segmentator::getHistogramProjectionY() const {
@@ -66,57 +67,94 @@ std::vector<int*>* Segmentator::cutToLine(int *histogram, int length) const {
     return stringText;
 }
 
-void Segmentator::algorithm() {
+Rectangle** Segmentator::createRect(std::vector<int*> *stringsText, std::vector<int*> **symbolsText) {
+    computeCountSegments(stringsText, symbolsText);
+    Rectangle **rectangles = new Rectangle * [myCountSegments];
 
-    // Получаем проекцию гистограммы на ось Y (вертикальная ось)
+    int countString = stringsText->size();
+    int i = 0;
+    for (int j = 0; j < countString; ++j) {
+        int y1 = stringsText->at(j)[0];
+        int y2 = stringsText->at(j)[1];
+        int lengthString = symbolsText[j]->size();
+        for (int k = 0; k < lengthString; ++k) {
+            int x1 = symbolsText[j]->at(k)[0];
+            int x2 = symbolsText[j]->at(k)[1];
+            rectangles[i] = new Rectangle(x1, y1, x2, y2);
+            ++i;
+        }
+    }
+    return rectangles;
+}
+
+std::vector<int*>* Segmentator::getBorderRow() const {
     int *histogramY = getHistogramProjectionY();
-
-    // Разрезаем текст на строки
     std::vector<int*> *stringsText = cutToLine(histogramY, myHeight);
 
-    // Получение проекций гистограмм на ось X (горизонтальная ось)
+    delete [] histogramY;
+
+    return stringsText;
+}
+
+int** Segmentator::getHistogramsProjectionX(std::vector<int*> *stringsText) const {
     int countString = stringsText->size();
-    int **histogramX = new int * [countString];
+    int **histogramsX = new int * [countString];
     for (int i = 0; i < countString; ++i) {
         int startLine = stringsText->at(i)[0];
         int stopLine = stringsText->at(i)[1];
-        histogramX[i] = getHistogramProjectionX(stopLine, myWidth, startLine, 0);
+        histogramsX[i] = getHistogramProjectionX(stopLine, myWidth, startLine, 0);
     }
+    return histogramsX;
+}
 
-    // Debug
-//    for (int i = 0; i < countString; ++i) {
-//        for (int j = 0; j < myWidth; ++j) {
-//            std::cout << histogramX[i][j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//    std::cout << std::endl;
-
-    // Разрезаем получившиеся строки на слова
+std::vector<int*>** Segmentator::getBorderColumn(std::vector<int*> *stringsText) const {
+    int **histogramsX = getHistogramsProjectionX(stringsText);
+    int countString = stringsText->size();
     std::vector<int*> **symbolsText = new std::vector<int*> * [countString];
     for (int i = 0; i < countString; ++i) {
-        symbolsText[i] = cutToLine(histogramX[i], myWidth);
+        symbolsText[i] = cutToLine(histogramsX[i], myWidth);
     }
 
-    // Debug
-//    for (int i = 0; i < myHeight; ++i) {
-//        std::cout << histogramY[i] << " ";
-//    }
-//    std::cout << std::endl;
+    for (int i = 0; i < countString; ++i) {
+        delete [] histogramsX[i];
+    }
+    delete [] histogramsX;
 
-    // Delete
-    delete [] histogramY;
-    int length = stringsText->size();
-    for (int i = 0; i < length; ++i) {
+    return symbolsText;
+}
+
+Rectangle** Segmentator::algorithm() {
+    std::vector<int*> *stringsText = getBorderRow();
+    std::vector<int*> **symbolsText = getBorderColumn(stringsText);
+    Rectangle **rectangles = createRect(stringsText, symbolsText);
+
+    int countString = stringsText->size();
+    for (int i = 0; i < countString; ++i) {
         delete [] stringsText->at(i);
-        delete [] histogramX[i];
+
         int strLength = symbolsText[i]->size();
+
         for (int j = 0; j < strLength; ++j) {
             delete [] symbolsText[i]->at(j);
         }
         delete symbolsText[i];
     }
     delete stringsText;
-    delete [] histogramX;
+
     delete [] symbolsText;
+
+    return rectangles;
+}
+
+int Segmentator::getCountSegments() const {
+    return myCountSegments;
+}
+
+void Segmentator::computeCountSegments(std::vector<int*> *stringsText, std::vector<int*> **symbolsText) {
+    int size = 0;
+    int countString = stringsText->size();
+    for (int i = 0; i < countString; ++i) {
+        size += symbolsText[i]->size();
+    }
+    myCountSegments = size;
 }
