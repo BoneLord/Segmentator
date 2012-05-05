@@ -19,10 +19,10 @@ int main(void) {
     Segmentator segmentator(image, height, width);
     Rectangle **rectangles = segmentator.algorithm();
 
-    for (int i = 0; i < segmentator.getCountSegments(); ++i) {
-        std::cout << "height = " << rectangles[i]->height() << " ";
-        std::cout << "width = " << rectangles[i]->width() << std::endl;
-    }
+//    for (int i = 0; i < segmentator.getCountSegments(); ++i) {
+//        std::cout << "height = " << rectangles[i]->height() << " ";
+//        std::cout << "width = " << rectangles[i]->width() << std::endl;
+//    }
 
     // Delete
     for (int i = 0; i < height; ++i) {

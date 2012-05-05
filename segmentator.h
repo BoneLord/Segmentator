@@ -21,8 +21,15 @@ private:
     std::vector<int*>* getBorderRow() const;
     int** getHistogramsProjectionX(std::vector<int*> *stringsText) const;
     std::vector<int*>** getBorderColumn(std::vector<int*> *stringsText) const;
+    int ** binarizationImage(int **image) const;
+    int otsuThreshold(int **image) const;
+    int* findMaxMin(int **image) const;
+    int* initializeHistogram(int histSize) const;
+    int* computeHistogram(int **image, int max, int min) const;
+    int computeThreshold(int histSize, int *hist) const;
 public:
     Segmentator(int **image, int height, int width);
+    ~Segmentator();
     Rectangle** algorithm();
     int getCountSegments() const;
 };

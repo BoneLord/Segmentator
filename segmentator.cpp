@@ -1,10 +1,17 @@
 #include "segmentator.h"
 
 Segmentator::Segmentator(int **image, int height, int width) {
-    myImage = image;
     myWidth = width;
     myHeight = height;
+    myImage = binarizationImage(image);
     myCountSegments = 0;
+}
+
+Segmentator::~Segmentator() {
+    for (int i = 0; i < myHeight; ++i) {
+        delete [] myImage [i];
+    }
+    delete [] myImage;
 }
 
 int* Segmentator::getHistogramProjectionY() const {
@@ -157,4 +164,123 @@ void Segmentator::computeCountSegments(std::vector<int*> *stringsText, std::vect
         size += symbolsText[i]->size();
     }
     myCountSegments = size;
+}
+
+int ** Segmentator::binarizationImage(int **image) const {
+    int t = otsuThreshold(image);
+
+    int width = myWidth;
+    int height = myHeight;
+    int **binaryImage = new int * [height];
+    for (int i = 0; i < height; ++i) {
+        binaryImage[i] = new int [width];
+        int *row = image[i];
+        int *rowBin = binaryImage[i];
+        for (int j = 0; j < width; ++j) {
+            if (row[j] > t) {
+                rowBin[j] = 255;
+            }
+            else {
+                rowBin[j] = 0;
+            }
+        }
+    }
+    return binaryImage;
+}
+
+int* Segmentator::findMaxMin(int **image) const {
+    int min = image[0][0];
+    int max = image[0][0];
+
+    for (int i = 0; i < myHeight; ++i) {
+        int *row = image[i];
+        for (int j = 0; j < myWidth; ++j) {
+            int value = row[j];
+            if (value < min) {
+                min = value;
+            }
+            if (value > max) {
+                max = value;
+            }
+        }
+    }
+    int *maxAndMin = new int [2];
+    maxAndMin[0] = max;
+    maxAndMin[1] = min;
+    return maxAndMin;
+}
+
+int* Segmentator::initializeHistogram(int histSize) const {
+    int *hist = new int [histSize];
+
+    for (int i = 0; i < histSize; ++i) {
+        hist[i] = 0;
+    }
+    return hist;
+}
+
+int* Segmentator::computeHistogram(int **image, int max, int min) const {
+    int histSize = max - min + 1;
+    int *hist = initializeHistogram(histSize);
+
+    for (int i = 0; i < myHeight; ++i) {
+        int *row = image[i];
+        for (int j = 0; j < myWidth; ++j) {
+            int brightness = row[j] - min;
+            ++hist[brightness];
+        }
+    }
+    return hist;
+}
+
+int Segmentator::computeThreshold(int histSize, int *hist) const {
+    int m = 0;
+    int n = 0;
+    for (int i = 0; i < histSize; ++i) {
+        m += i * hist[i];
+        n += hist[i];
+    }
+
+    float maxSigma = -1;
+    int threshold = 0;
+
+    int alpha1 = 0;
+    int beta1 = 0;
+
+    int length = histSize - 1;
+    for (int t = 0; t < length; ++t) {
+        alpha1 += t * hist[t];
+        beta1 += hist[t];
+
+        float w1 = (float)beta1 / n;
+
+        float a = (float)alpha1 / beta1 - (float)(m - alpha1) / (n - beta1);
+
+        float sigma = w1 * (1 - w1) * a * a;
+
+        if (sigma > maxSigma) {
+            maxSigma = sigma;
+            threshold = t;
+        }
+    }
+    return threshold;
+}
+
+int Segmentator::otsuThreshold(int **image) const {
+    int *maxAndMin = findMaxMin(image);
+    int max = maxAndMin[0];
+    int min = maxAndMin[1];
+
+    delete [] maxAndMin;
+
+    int *hist = computeHistogram(image, max, min);
+
+    int histSize = max - min + 1;
+    int threshold = computeThreshold(histSize, hist);
+
+    threshold += min;
+
+    delete [] hist;
+
+    return threshold;
 }
